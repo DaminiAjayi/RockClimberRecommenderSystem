@@ -1,4 +1,7 @@
+setwd("/Users/jad/apptown/CSE_6242/climbing")
+
 library(mongolite)
+library(ggplot2)
 
 # Setup connection to routes collection
 ROUTES <- mongo(collection= "route",
@@ -37,6 +40,16 @@ route_df$routeId <- route_df$id   # For easier merging of datasets
 
 # Merge DataFrames; essentially 
 routes_completed_df <- merge(user_ticks_df[c("routeId", "date")], route_df, by="routeId")
+routes_completed_df <- routes_completed_df[c("routeId", "date", "stars", "starVotes", "pitches")]
+
+# Load in cleaned up difficulty ratings
+cleaned_ratings <- read.csv("cleaned_route_difficulty.csv")
+cleaned_ratings <- cleaned_ratings[c("id", "rating", "type")]       #subset
+cleaned_ratings$routeId <- cleaned_ratings$id
+
+routes_completed_df <- merge(routes_completed_df, cleaned_ratings, by="routeId")
+routes_completed_df $date <- as.Date(routes_completed_df$date, '%Y-%m-%d')
+
 
 # Subset data by type completed
 climbing_types <- unique(routes_completed_df$type)
@@ -44,13 +57,14 @@ climbing_types <- unique(routes_completed_df$type)
 # IDK HOW TO MAKE SUBPLOTS
 # Make plot for each type of climbing; y-metrics = ["rating", "stars", "starVotes", "pitches"]
 # rating == difficult of route; currently data is too dirty to be useful
-y_metric <- "starVotes"
-for (climb_type in climbing_types[2]) {
+y_metric <- "rating"
+for (climb_type in climbing_types[1]) {
   print(climb_type)
   # Build time series plot
   plot <- ggplot(data = routes_completed_df[routes_completed_df$type == climb_type, ], 
                  aes_string(x="date", y=y_metric)) +
     geom_point(shape=1) +
+    scale_x_date(date_breaks = "1 month") + 
     theme(axis.text.x = element_text(angle=90, hjust=1))
   print(plot)
 }
@@ -58,8 +72,3 @@ for (climb_type in climbing_types[2]) {
 end_time <- Sys.time()
 end_time - start_time      # Time to run code
 
-# For testing purposes
-data <- routes_completed_df[routes_completed_df$type == "Boulder",]
-ggplot(data = routes_completed_df[routes_completed_df$type == "Boulder",], aes(x=date, y=starVotes)) +
-  geom_point(shape=1) +
-  theme(axis.text.x = element_text(angle=90, hjust=1))
