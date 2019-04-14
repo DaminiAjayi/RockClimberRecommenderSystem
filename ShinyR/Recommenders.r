@@ -1,24 +1,31 @@
 ########## SVD Setup #############
+print('Loading Up SVD data')
+start_time <- Sys.time()
+
 # Read in User and Route IDs
-  user_ids <- scan("users.txt", what="", sep="\n")
-  route_ids <- scan("routes.txt", what="", sep="\n")
-  
-  # Read in latent matrix and bias terms
-  U <- npyLoad("U.npy")
-  Vt <- npyLoad("Vt.npy")
-  b_u <- npyLoad("b_u.npy")
-  b_i <- npyLoad("b_i.npy")
-  
-  # Load in original user, route, rating matrix
-  df <- read.csv('user_routes_reduced.csv')
-  
-  # Load in route lat long
-  lat_long_df <- read.csv('master_routes_lat_long.csv')
-  # Subset by relevant routes
-  lat_long_df <- lat_long_df[lat_long_df$RouteID %in% route_ids, ]
+user_ids <- scan("users.txt", what="", sep="\n")
+route_ids <- scan("routes.txt", what="", sep="\n")
+
+# Read in latent matrix and bias terms
+U <- npyLoad("U.npy")
+Vt <- npyLoad("Vt.npy")
+b_u <- npyLoad("b_u.npy")
+b_i <- npyLoad("b_i.npy")
+
+# Load in original user, route, rating matrix
+df <- read.csv('user_routes_reduced.csv')
+
+# Load in route lat long
+lat_long_df <- read.csv('master_routes_lat_long.csv')
+# Subset by relevant routes
+lat_long_df <- lat_long_df[lat_long_df$RouteID %in% route_ids, ]
+
+end_time <- Sys.time()
+print(end_time - start_time)     # Time to run code
 
 
 ###################################################################
+
 
 # FUNCTION: Calculate distance from two points (in miles)
 haversine <- function(lat1, lon1, lat2, lon2) {
@@ -32,8 +39,9 @@ haversine <- function(lat1, lon1, lat2, lon2) {
 }
 
 getroutesid <- function(cur_user, user_lat, user_long, max_distance){
+
+  max_distance <- as.numeric(max_distance)
   mu = 2.7401829352698774
-  
   
   # Input userID (THIS WOULD BE THE INPUT SPOT FOR THE APP)
   cur_user_index <- match(cur_user, user_ids)
@@ -74,17 +82,28 @@ getroutesid <- function(cur_user, user_lat, user_long, max_distance){
   top_k_ratings <- user_predicted_ratings[k_indices]
   top_k_routes <- routes_of_interest[k_indices]          ###### THIS IS PROBABLY WHAT YOU WANT
   
-  #   # Return a dataframe of the k top recommended routes and ratings
+  # Return top k routes
   return(top_k_routes)
 }
+
 
 
 ########## KKNN Setup #############
 # 
 #read data
+
+print('Loading Up KNN data')
+start_time <- Sys.time()
+
 print("importing datasets")
 KKNN_df <- read.csv('processedData.csv')
+end_time <- Sys.time()
+print(end_time - start_time)     # Time to run code
+
 KKNN_dfRoute <- read.csv('routeData.csv')
+
+end_time <- Sys.time()
+print(end_time - start_time)     # Time to run code
 
 #normalize data
 KKNN_df$trad <- (KKNN_df$trad-min(KKNN_df$trad))/(max(KKNN_df$trad)-min(KKNN_df$trad))
@@ -100,6 +119,8 @@ KKNN_df$average <- (KKNN_df$average-min(KKNN_df$average))/(max(KKNN_df$average)-
 KKNN_df$hardest <- (KKNN_df$hardest-min(KKNN_df$hardest))/(max(KKNN_df$hardest)-min(KKNN_df$hardest))
 KKNN_df$route_count <- (KKNN_df$route_count-min(KKNN_df$route_count))/(max(KKNN_df$route_count)-min(KKNN_df$route_count))
 
+end_time <- Sys.time()
+print(end_time - start_time)     # Time to run code
 
 ######################################################################
 
@@ -108,146 +129,146 @@ KKNN_df$route_count <- (KKNN_df$route_count-min(KKNN_df$route_count))/(max(KKNN_
 
 getKNN <- function(currentUser, lat, lon, dist){
   print("into the KNN code")
-#define current user
-# currentUser <- 108738732
-# lat <- 40.7564
-# lon <- -111.8986
-# dist <- 25.0 #in miles
-print(currentUser)
-print(lat)
-print(lon)
-print(dist)
-#get row for current user
-user_list <- head(KKNN_df[KKNN_df$user == currentUser,], n = 1)
-
-#Only run if route count is less than 200 (normalized to 1)
-
-# ticks <- TICK$find(paste0('{"user":','"', currentUser, '"}'))
-# length(ticks$ticks[[1]]$routeId)
-routeCount <- head(user_list$route_count, n = 1)
-if (routeCount < 1) {
-
-  #get route list for current user
-  userList <- user_list$route_list[[1]]
-  userList <- sapply(userList, function(x) gsub("\\[|\\'|\\]|\\s", "", x) )
-  userList <- as.vector(unlist(strsplit(userList,",")),mode="list")
-  userList <- do.call(rbind.data.frame, userList)
-  names(userList)[1]<-"name"
-
-  #define variable for current user
-  average <- user_list$average
-  hardest <- user_list$hardest
-  count <- user_list$route_count
-  trad <- user_list$trad
-  sport <- user_list$sport
-  tr <- user_list$tr
-  boulder <- user_list$boulder
-  ice <- user_list$ice
-  alpine <- user_list$alpine
-  snow <- user_list$snow
-  aid <- user_list$aid
-  mixed <- user_list$mixed
-
-  #define closeness to user
-  KKNN_df$average_closeness <- sapply(KKNN_df$average, function(x) as.numeric((average-x)**2))
-  KKNN_df$hardest_closeness <- sapply(KKNN_df$hardest, function(x) as.numeric((hardest-x)**2))
-  KKNN_df$route_count_closeness <- sapply(KKNN_df$route_count, function(x) as.numeric((count-x)**2))
-  KKNN_df$trad_closeness <- sapply(KKNN_df$trad, function(x) as.numeric((trad-x)**2))
-  KKNN_df$sport_closeness <- sapply(KKNN_df$sport, function(x) as.numeric((sport-x)**2))
-  KKNN_df$tr_closeness <- sapply(KKNN_df$tr, function(x) as.numeric((tr-x)**2))
-  KKNN_df$boulder_closeness <- sapply(KKNN_df$boulder, function(x) as.numeric((boulder-x)**2))
-  KKNN_df$ice_closeness <- sapply(KKNN_df$ice, function(x) as.numeric((ice-x)**2))
-  KKNN_df$alpine_closeness <- sapply(KKNN_df$alpine, function(x) as.numeric((alpine-x)**2))
-  KKNN_df$snow_closeness <- sapply(KKNN_df$snow, function(x) as.numeric((snow-x)**2))
-  KKNN_df$aid_closeness <- sapply(KKNN_df$aid, function(x) as.numeric((aid-x)**2))
-  KKNN_df$mixed_closeness <- sapply(KKNN_df$mixed, function(x) as.numeric((mixed-x)**2))
-
-  #calculate score
-  print('calculating score')
-  KKNN_df$score <- KKNN_df$average_closeness + KKNN_df$hardest_closeness + KKNN_df$route_count_closeness + KKNN_df$trad_closeness + KKNN_df$sport_closeness + KKNN_df$tr_closeness + KKNN_df$boulder_closeness + KKNN_df$ice_closeness + KKNN_df$alpine_closeness + KKNN_df$snow_closeness + KKNN_df$aid_closeness + KKNN_df$mixed_closeness
-
-  #order by initial score and take first x results
-  results <- 5000
-  print('obtaining the first x results')
-  KKNN_dfSub <- KKNN_df[order(KKNN_df$score),][1:results,]
-  rm(KKNN_df)
-  #list of routes from users
-  print("obtaining list of routes from users")
-  combinedList <- KKNN_dfSub$route_list
-  combinedList <- sapply(combinedList, function(x) gsub("\\[|\\'|\\]|\\s", "", x) )
-  combinedList <- sapply(combinedList, function(x) as.vector(unlist(strsplit(x,",")),mode="list") )
-
-  rm(KKNN_dfSub)
-  
-  #routes that top x result users have climbed
-  orderedList <- vector()
-
-  #rank of route by user similarity
-  print('obtaining rank')
-  rank <- vector()
-
-  #calculate and populate above empty lists
-  result <- results
-  for (i in combinedList){
-    for (x in i){
-      rank <- c(rank, result/results)
-      orderedList <- c(orderedList, x)
-    }
-    result <- result-1
-  }
-  print("combining lists into dataframe")
-  #combine lists into data frame
-  KKNN_df2 <- do.call(rbind, Map(data.frame, rank=rank, route=orderedList))
-
-  print("merging with route data")
-  #merge with route data
-  KKNN_df2 <- merge(KKNN_df2, KKNN_dfRoute, all.x = TRUE, by.x ='route', by.y='id')
-  rm(KKNN_dfRoute)
-
-  print("removing routes that user has already climbed")
-  #remove routes that user has already climbed
-  KKNN_df2 <- subset(KKNN_df2, !(route %in% userList$name))
-  
-  print("filtering out routes with less than 10 votes")
-  #filter out routes with less than 10 votes
-  KKNN_df2 = KKNN_df2[KKNN_df2$starVotes >= 10,]
-  
-  print()
-  #calculate final score that will be used for recommendations
-  KKNN_df2$final_score <- KKNN_df2$rank * KKNN_df2$stars
-
-  #remove duplicate recommended routes
-  KKNN_df2 <- KKNN_df2[!duplicated(KKNN_df2$route),]
-
-  #replace NA routes with all types so they aren't left out
-  KKNN_df2$type[is.na(KKNN_df2$type)] <- 'Trad, Sport, Tr, Boulder, Ice, Alpine, Snow, Aid, Mixed'
-
-  #user inputs
+  #define current user
+  # currentUser <- 108738732
   # lat <- 40.7564
   # lon <- -111.8986
   # dist <- 25.0 #in miles
-  route_type = 'Sport'
-
-  print('Calculating distance from user location')
-  #calculate distance from user location
-  KKNN_df2$distance <- sapply(KKNN_df2$latitude, function(x) as.numeric((x-lat)**2)) + sapply(KKNN_df2$longitude, function(x) as.numeric((x-lon)**2))
-  KKNN_df2$distance <- sapply(KKNN_df2$distance, function(x) as.numeric(sqrt(x)*69.0))
-
-  print("filter to results within distance")
-  #filter to results within distance
-  KKNN_df2 <- KKNN_df2[KKNN_df2$distance <= dist,]
-
-  print("filter to results of specified type")
-  #filter to results of specified type
-  KKNN_df2 <- KKNN_df2[str_detect(KKNN_df2$type, route_type),]
-
-  print("printing number of best results")
-  #print x number of best results
-  recommendations <- 10
-  final <- KKNN_df2[order(KKNN_df2$final_score, decreasing = TRUE),][1:recommendations,]
-  final <- final[,c("route","name","stars","rank","final_score")]
-  print(final)
-  print(final$route)
-
-}}
+  print(currentUser)
+  print(lat)
+  print(lon)
+  print(dist)
+  #get row for current user
+  user_list <- head(KKNN_df[KKNN_df$user == currentUser,], n = 1)
+  
+  #Only run if route count is less than 200 (normalized to 1)
+  
+  # ticks <- TICK$find(paste0('{"user":','"', currentUser, '"}'))
+  # length(ticks$ticks[[1]]$routeId)
+  routeCount <- head(user_list$route_count, n = 1)
+  if (routeCount < 1) {
+    
+    #get route list for current user
+    userList <- user_list$route_list[[1]]
+    userList <- sapply(userList, function(x) gsub("\\[|\\'|\\]|\\s", "", x) )
+    userList <- as.vector(unlist(strsplit(userList,",")),mode="list")
+    userList <- do.call(rbind.data.frame, userList)
+    names(userList)[1]<-"name"
+    
+    #define variable for current user
+    average <- user_list$average
+    hardest <- user_list$hardest
+    count <- user_list$route_count
+    trad <- user_list$trad
+    sport <- user_list$sport
+    tr <- user_list$tr
+    boulder <- user_list$boulder
+    ice <- user_list$ice
+    alpine <- user_list$alpine
+    snow <- user_list$snow
+    aid <- user_list$aid
+    mixed <- user_list$mixed
+    
+    #define closeness to user
+    KKNN_df$average_closeness <- sapply(KKNN_df$average, function(x) as.numeric((average-x)**2))
+    KKNN_df$hardest_closeness <- sapply(KKNN_df$hardest, function(x) as.numeric((hardest-x)**2))
+    KKNN_df$route_count_closeness <- sapply(KKNN_df$route_count, function(x) as.numeric((count-x)**2))
+    KKNN_df$trad_closeness <- sapply(KKNN_df$trad, function(x) as.numeric((trad-x)**2))
+    KKNN_df$sport_closeness <- sapply(KKNN_df$sport, function(x) as.numeric((sport-x)**2))
+    KKNN_df$tr_closeness <- sapply(KKNN_df$tr, function(x) as.numeric((tr-x)**2))
+    KKNN_df$boulder_closeness <- sapply(KKNN_df$boulder, function(x) as.numeric((boulder-x)**2))
+    KKNN_df$ice_closeness <- sapply(KKNN_df$ice, function(x) as.numeric((ice-x)**2))
+    KKNN_df$alpine_closeness <- sapply(KKNN_df$alpine, function(x) as.numeric((alpine-x)**2))
+    KKNN_df$snow_closeness <- sapply(KKNN_df$snow, function(x) as.numeric((snow-x)**2))
+    KKNN_df$aid_closeness <- sapply(KKNN_df$aid, function(x) as.numeric((aid-x)**2))
+    KKNN_df$mixed_closeness <- sapply(KKNN_df$mixed, function(x) as.numeric((mixed-x)**2))
+    
+    #calculate score
+    print('calculating score')
+    KKNN_df$score <- KKNN_df$average_closeness + KKNN_df$hardest_closeness + KKNN_df$route_count_closeness + KKNN_df$trad_closeness + KKNN_df$sport_closeness + KKNN_df$tr_closeness + KKNN_df$boulder_closeness + KKNN_df$ice_closeness + KKNN_df$alpine_closeness + KKNN_df$snow_closeness + KKNN_df$aid_closeness + KKNN_df$mixed_closeness
+    
+    #order by initial score and take first x results
+    results <- 5000
+    print('obtaining the first x results')
+    KKNN_dfSub <- KKNN_df[order(KKNN_df$score),][1:results,]
+    rm(KKNN_df)
+    #list of routes from users
+    print("obtaining list of routes from users")
+    combinedList <- KKNN_dfSub$route_list
+    combinedList <- sapply(combinedList, function(x) gsub("\\[|\\'|\\]|\\s", "", x) )
+    combinedList <- sapply(combinedList, function(x) as.vector(unlist(strsplit(x,",")),mode="list") )
+    
+    rm(KKNN_dfSub)
+    
+    #routes that top x result users have climbed
+    orderedList <- vector()
+    
+    #rank of route by user similarity
+    print('obtaining rank')
+    rank <- vector()
+    
+    #calculate and populate above empty lists
+    result <- results
+    for (i in combinedList){
+      for (x in i){
+        rank <- c(rank, result/results)
+        orderedList <- c(orderedList, x)
+      }
+      result <- result-1
+    }
+    print("combining lists into dataframe")
+    #combine lists into data frame
+    KKNN_df2 <- do.call(rbind, Map(data.frame, rank=rank, route=orderedList))
+    
+    print("merging with route data")
+    #merge with route data
+    KKNN_df2 <- merge(KKNN_df2, KKNN_dfRoute, all.x = TRUE, by.x ='route', by.y='id')
+    rm(KKNN_dfRoute)
+    
+    print("removing routes that user has already climbed")
+    #remove routes that user has already climbed
+    KKNN_df2 <- subset(KKNN_df2, !(route %in% userList$name))
+    
+    print("filtering out routes with less than 10 votes")
+    #filter out routes with less than 10 votes
+    KKNN_df2 = KKNN_df2[KKNN_df2$starVotes >= 10,]
+    
+    print()
+    #calculate final score that will be used for recommendations
+    KKNN_df2$final_score <- KKNN_df2$rank * KKNN_df2$stars
+    
+    #remove duplicate recommended routes
+    KKNN_df2 <- KKNN_df2[!duplicated(KKNN_df2$route),]
+    
+    #replace NA routes with all types so they aren't left out
+    KKNN_df2$type[is.na(KKNN_df2$type)] <- 'Trad, Sport, Tr, Boulder, Ice, Alpine, Snow, Aid, Mixed'
+    
+    #user inputs
+    # lat <- 40.7564
+    # lon <- -111.8986
+    # dist <- 25.0 #in miles
+    route_type = 'Sport'
+    
+    print('Calculating distance from user location')
+    #calculate distance from user location
+    KKNN_df2$distance <- sapply(KKNN_df2$latitude, function(x) as.numeric((x-lat)**2)) + sapply(KKNN_df2$longitude, function(x) as.numeric((x-lon)**2))
+    KKNN_df2$distance <- sapply(KKNN_df2$distance, function(x) as.numeric(sqrt(x)*69.0))
+    
+    print("filter to results within distance")
+    #filter to results within distance
+    KKNN_df2 <- KKNN_df2[KKNN_df2$distance <= dist,]
+    
+    print("filter to results of specified type")
+    #filter to results of specified type
+    KKNN_df2 <- KKNN_df2[str_detect(KKNN_df2$type, route_type),]
+    
+    print("printing number of best results")
+    #print x number of best results
+    recommendations <- 10
+    final <- KKNN_df2[order(KKNN_df2$final_score, decreasing = TRUE),][1:recommendations,]
+    final <- final[,c("route","name","stars","rank","final_score")]
+    print(final)
+    print(final$route)
+    
+  }}
 
