@@ -1,4 +1,5 @@
-library(stringr)
+setwd("~/Documents/CSE6242")
+library("stringr", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
 
 #read data
 df <- read.csv('processedData.csv')
@@ -19,14 +20,14 @@ df$hardest <- (df$hardest-min(df$hardest))/(max(df$hardest)-min(df$hardest))
 df$route_count <- (df$route_count-min(df$route_count))/(max(df$route_count)-min(df$route_count))
 
 #define current user
-currentUser <- 106523948
-print(currentUser)
+currentUser <- 107829049
+
 #get row for current user
 user_list <- head(df[df$user == currentUser,], n = 1)
 
-#Only run if route count is less than 200 (normalized to 1)
+#Only run if route count is less than specified (normalized on 0 to 200 scale)
 routeCount <- head(user_list$route_count, n = 1)
-if (routeCount < 1) {
+if (routeCount < .5) {
 
 #get route list for current user
 userList <- user_list$route_list[[1]]
@@ -70,32 +71,20 @@ df$score <- df$average_closeness + df$hardest_closeness + df$route_count_closene
 results <- 5000
 dfSub <- df[order(df$score),][1:results,]
 
-print("list of routes")
 #list of routes from users
 combinedList <- dfSub$route_list
 combinedList <- sapply(combinedList, function(x) gsub("\\[|\\'|\\]|\\s", "", x) )
 combinedList <- sapply(combinedList, function(x) as.vector(unlist(strsplit(x,",")),mode="list") )
 
-print("top x results")
-#routes that top x result users have climbed
-orderedList <- vector()
+#flatten combinedList
+orderedList <- unlist(combinedList, recursive=TRUE, use.name=FALSE)
 
-#rank of route by user similarity
-print("obtaining rank")
-rank <- vector()
-
-#calculate and populate above empty lists
-result <- results
-for (i in combinedList){
-  for (x in i){
-  rank <- c(rank, result/results)
-  orderedList <- c(orderedList, x)
-  }
-result <- result-1
-}
+#create rank list based on order in orderedList
+rank <- rev(seq(0, 1, by=(1/(length(orderedList)-1))))
 
 #combine lists into data frame
-df2 <- do.call(rbind, Map(data.frame, rank=rank, route=orderedList))
+df2 <- data.frame(rank,orderedList)
+colnames(df2) <- c('rank', 'route')
 
 #merge with route data
 df2 <- merge(df2, dfRoute, all.x = TRUE, by.x ='route', by.y='id')
@@ -116,8 +105,8 @@ df2 <- df2[!duplicated(df2$route),]
 # df2$type[is.na(df2$type)] <- 'Trad, Sport, Tr, Boulder, Ice, Alpine, Snow, Aid, Mixed'
 
 #user inputs
-lat <- 29.75894
-lon <- -95.3677
+lat <- 40.7564
+lon <- -111.8986
 dist <- 25.0 #in miles
 route_type = 'Sport'
 

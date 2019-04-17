@@ -119,6 +119,7 @@ KKNN_df$average <- (KKNN_df$average-min(KKNN_df$average))/(max(KKNN_df$average)-
 KKNN_df$hardest <- (KKNN_df$hardest-min(KKNN_df$hardest))/(max(KKNN_df$hardest)-min(KKNN_df$hardest))
 KKNN_df$route_count <- (KKNN_df$route_count-min(KKNN_df$route_count))/(max(KKNN_df$route_count)-min(KKNN_df$route_count))
 
+
 end_time <- Sys.time()
 print(end_time - start_time)     # Time to run code
 
@@ -138,6 +139,7 @@ getKNN <- function(currentUser, lat, lon, dist){
   print(lat)
   print(lon)
   print(dist)
+  dist <- as.numeric(dist)
   #get row for current user
   user_list <- head(KKNN_df[KKNN_df$user == currentUser,], n = 1)
   
@@ -146,7 +148,7 @@ getKNN <- function(currentUser, lat, lon, dist){
   # ticks <- TICK$find(paste0('{"user":','"', currentUser, '"}'))
   # length(ticks$ticks[[1]]$routeId)
   routeCount <- head(user_list$route_count, n = 1)
-  if (routeCount < 1) {
+  if (routeCount < .5) {
     
     #get route list for current user
     userList <- user_list$route_list[[1]]
@@ -200,40 +202,25 @@ getKNN <- function(currentUser, lat, lon, dist){
     
     rm(KKNN_dfSub)
     
-    #routes that top x result users have climbed
-    orderedList <- vector()
+    #flatten combinedList
+    orderedList <- unlist(combinedList, recursive=TRUE, use.name=FALSE)
     
-    #rank of route by user similarity
-    print('obtaining rank')
-    rank <- vector()
+    #create rank list based on order in orderedList
+    rank <- rev(seq(0, 1, by=(1/(length(orderedList)-1))))
     
-    #calculate and populate above empty lists
-    result <- results
-    for (i in combinedList){
-      for (x in i){
-        rank <- c(rank, result/results)
-        orderedList <- c(orderedList, x)
-      }
-      result <- result-1
-    }
-    print("combining lists into dataframe")
     #combine lists into data frame
-    KKNN_df2 <- do.call(rbind, Map(data.frame, rank=rank, route=orderedList))
+    KKNN_df2 <- data.frame(rank,orderedList)
+    colnames(KKNN_df2) <- c('rank', 'route')
     
-    print("merging with route data")
     #merge with route data
     KKNN_df2 <- merge(KKNN_df2, KKNN_dfRoute, all.x = TRUE, by.x ='route', by.y='id')
-    rm(KKNN_dfRoute)
     
-    print("removing routes that user has already climbed")
     #remove routes that user has already climbed
     KKNN_df2 <- subset(KKNN_df2, !(route %in% userList$name))
     
-    print("filtering out routes with less than 10 votes")
     #filter out routes with less than 10 votes
     KKNN_df2 = KKNN_df2[KKNN_df2$starVotes >= 10,]
     
-    print()
     #calculate final score that will be used for recommendations
     KKNN_df2$final_score <- KKNN_df2$rank * KKNN_df2$stars
     
@@ -241,34 +228,26 @@ getKNN <- function(currentUser, lat, lon, dist){
     KKNN_df2 <- KKNN_df2[!duplicated(KKNN_df2$route),]
     
     #replace NA routes with all types so they aren't left out
-    KKNN_df2$type[is.na(KKNN_df2$type)] <- 'Trad, Sport, Tr, Boulder, Ice, Alpine, Snow, Aid, Mixed'
+    # KKNN_df2$type[is.na(KKNN_df2$type)] <- 'Trad, Sport, Tr, Boulder, Ice, Alpine, Snow, Aid, Mixed'
     
     #user inputs
-    # lat <- 40.7564
-    # lon <- -111.8986
-    # dist <- 25.0 #in miles
     route_type = 'Sport'
     
-    print('Calculating distance from user location')
     #calculate distance from user location
     KKNN_df2$distance <- sapply(KKNN_df2$latitude, function(x) as.numeric((x-lat)**2)) + sapply(KKNN_df2$longitude, function(x) as.numeric((x-lon)**2))
     KKNN_df2$distance <- sapply(KKNN_df2$distance, function(x) as.numeric(sqrt(x)*69.0))
     
-    print("filter to results within distance")
     #filter to results within distance
     KKNN_df2 <- KKNN_df2[KKNN_df2$distance <= dist,]
     
-    print("filter to results of specified type")
     #filter to results of specified type
-    KKNN_df2 <- KKNN_df2[str_detect(KKNN_df2$type, route_type),]
+    # KKNN_df2 <- KKNN_df2[str_detect(KKNN_df2$type, route_type),]
     
-    print("printing number of best results")
     #print x number of best results
-    recommendations <- 10
+    recommendations <- 5
     final <- KKNN_df2[order(KKNN_df2$final_score, decreasing = TRUE),][1:recommendations,]
     final <- final[,c("route","name","stars","rank","final_score")]
     print(final)
     print(final$route)
-    
+    return(final$route)
   }}
-

@@ -118,8 +118,8 @@ ui <- navbarPage("RC Recommender",
                                                            onInitialize = I('function() { this.setValue(""); }'))
                                                          ),
                                           sliderInput("pitches", "No. of Pitches", min = 0, max = 10, value = 0,step=1),
-                                          # Slider for V-level (whatever that is)
-                                          sliderInput("vlevel", "V Level", min = 0, max = 14, value = c(3, 5)),
+                                          # # Slider for V-level (whatever that is)
+                                          # sliderInput("vlevel", "V Level", min = 0, max = 14, value = c(3, 5)),
                                           actionButton("filter", "Filter")))),
                               
                 
@@ -261,7 +261,7 @@ server <- function(input, output) {
     print("Getting tick data for user")
     # userid <- 200220441
     ticks <- TICK$find(paste0('{"user":','"', userid, '"}'))
-    if(length(ticks$ticks[[1]]$routeId) >= 200){
+    if(length(ticks$ticks[[1]]$routeId) >= 100){
       print("Running SVD code")
       # svd_setup()
       routeid <- getroutesid(userid, long_lat[[1]], long_lat[[2]], searchradius)
@@ -300,15 +300,18 @@ server <- function(input, output) {
 
     data$dataframe <- dataframe
 
+    print(dataframe$longitude)
+    print(dataframe$latitude)
+    print(dataframe$content)
     leaflet(data = dataframe) %>%
     setView(lng = -98, lat = 39, zoom = 4) %>%
       
     addProviderTiles(providers$Esri.WorldTopoMap, 
                        options = providerTileOptions(noWrap = TRUE)) %>%  
-      
-    addMarkers(lng = 	dataframe$longitude, lat = dataframe$latitude, popup = dataframe$content) %>%
+    addMarkers(lng = dataframe$longitude, lat = dataframe$latitude, popup = dataframe$content) %>%
     addMiniMap() 
-    })      
+    })
+    
   output$table <- DT::renderDataTable({
       DT::datatable(data$dataframe[,c("name","state","type","pitches","stars","votes")])
     })
@@ -318,10 +321,12 @@ server <- function(input, output) {
   observeEvent(input$filter, {
     output$mymap <- renderLeaflet({
       selectrating <- isolate(input$rating)
+      selectpitches <- isolate(input$pitches)
       # selectlocation <- isolate(input$location)
       selecttype <- isolate(input$type)
       dataframe <- data$dataframe
       df_sub <- subset(dataframe,stars>=selectrating)
+      # df_sub <- subset(dataframe,pitches>=selectpitches)
       # if(selectlocation !="" & selectlocation !="All"){
       #   df_sub <- subset(df,state==selectlocation)
       # }
