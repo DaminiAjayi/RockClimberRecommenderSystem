@@ -7,8 +7,8 @@ user_ids <- scan("users.txt", what="", sep="\n")
 route_ids <- scan("routes.txt", what="", sep="\n")
 
 # Read in latent matrix and bias terms
-U <- npyLoad("U.npy")
-Vt <- npyLoad("Vt.npy")
+U <- npyLoad("u.npy")
+Vt <- npyLoad("vt.npy")
 b_u <- npyLoad("b_u.npy")
 b_i <- npyLoad("b_i.npy")
 
@@ -96,11 +96,11 @@ print('Loading Up KNN data')
 start_time <- Sys.time()
 
 print("importing datasets")
-KKNN_df <- read.csv('processedData.csv')
+KKNN_df <- read.csv('processed_data.csv')
 end_time <- Sys.time()
 print(end_time - start_time)     # Time to run code
 
-KKNN_dfRoute <- read.csv('routeData.csv')
+KKNN_dfRoute <- read.csv('route_data.csv')
 
 end_time <- Sys.time()
 print(end_time - start_time)     # Time to run code

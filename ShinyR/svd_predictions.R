@@ -6,8 +6,8 @@ user_ids <- scan("users.txt", what="", sep="\n")
 route_ids <- scan("routes.txt", what="", sep="\n")
 
 # Read in latent matrix and bias terms
-U <- npyLoad("U.npy")
-Vt <- npyLoad("Vt.npy")
+U <- npyLoad("u.npy")
+Vt <- npyLoad("vt.npy")
 b_u <- npyLoad("b_u.npy")
 b_i <- npyLoad("b_i.npy")
 mu = 2.7401829352698774
