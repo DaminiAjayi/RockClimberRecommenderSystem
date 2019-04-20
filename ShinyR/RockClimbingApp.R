@@ -1,3 +1,6 @@
+
+
+
 # table interactivity: https://antoineguillot.wordpress.com/2017/03/01/three-r-shiny-tricks-to-make-your-shiny-app-shines-33-buttons-to-delete-edit-and-compare-datatable-rows/
 # More maps can be found here: http://leaflet-extras.github.io/leaflet-providers/preview/index.html
 # Leaflet help: https://rstudio.github.io/leaflet/popups.html
@@ -154,11 +157,6 @@ ui <- navbarPage("RC Recommender",
 
                           sidebarLayout(position = "right",
                                         mainPanel(
-                                          h2("Overview"),
-                                          text1,
-                                          p(),
-                                          text2,
-                                          p(),
                                           h3("Recommender Map"),
                                           p(),
                                           leafletOutput("mymap", height = 450),
@@ -175,9 +173,9 @@ ui <- navbarPage("RC Recommender",
                                           ## File upload
                                           #fileInput("file", "Upload data"),
                                           # Enter user id
-                                          textInput("userid", "User ID:", placeholder = 'Enter your user ID'),
-                                          textInput("cityname", "City, State:", placeholder = 'e.g. Houston, TX'),
-                                          textInput("searchradius", "Routes search radius (mi)", placeholder = 'e.g. 100'),
+                                          textInput("userid", "User ID:", value = 105794406),
+                                          textInput("cityname", "City, State:", value = 'Seattle, WA'),
+                                          textInput("searchradius", "Routes search radius (mi)", value = 100),
                                           sliderInput("numofrecom", "Number of recommendations:",
                                                       min = 5, max = 100, value = 5,step =5),
                                           actionButton("search", "Search"),
@@ -187,12 +185,8 @@ ui <- navbarPage("RC Recommender",
                                           # Minimum rating (stars)
                                           sliderInput("rating", "Minimum Stars", min = 0, max = 5, value = 0,step=0.5),
                                           # Selector for type of climb
-                                          selectizeInput("type", "Type of Climb", choices = c("Aid","Alpine", "Boulder","Ice","Mixed", "Rock","Snow" , "Sport","TR","Trad"),
-                                                         options = list(
-                                                           placeholder = 'Please select climb type below',
-                                                           onInitialize = I('function() { this.setValue(""); }'),
-                                                          multiple = TRUE)
-                                          ),
+                                          checkboxGroupInput("type", "Type of Climb", choices = c("Aid","Alpine", "Boulder","Ice","Mixed", "Rock","Snow" , "Sport","TR","Trad"),
+                                                          selected = "Rock"),
                                           sliderInput("pitches", "No. of Pitches", min = 0, max = 10, value = 0,step=1),
                                           # # Slider for V-level (whatever that is)
                                           # sliderInput("vlevel", "V Level", min = 0, max = 14, value = c(3, 5)),
@@ -222,7 +216,7 @@ ui <- navbarPage("RC Recommender",
                                           # Star votes
                                           sliderInput("explorer_stars", "Select star votes", min = 0, max = 1606, value = c(200, 500)),
                                           # Star rating
-                                          sliderInput("explorer_star_rating", "Select star rating", min = 0, max = 6, value = c(2.5, 4.5))
+                                          sliderInput("explorer_star_rating", "Select star rating", min = 0, max = 5, value = c(2.5, 4.5))
                                           
                                           
                                         ))),
@@ -285,8 +279,7 @@ ui <- navbarPage("RC Recommender",
                  
 
                  
-                 theme = shinytheme("flatly"),
-                 shinythemes::themeSelector()
+                 theme = shinytheme("flatly")
 
                  
 )
@@ -319,16 +312,16 @@ server <- function(input, output) {
     long_lat<- getgeo(cityname)
     print(paste0("Latitude is: ", long_lat[2][1]))
     
-    # # Error: Case 1
-    # if(((as.numeric(long_lat[1])-39.7837304)^2+(as.numeric(long_lat[2])+100.4458825)^2)^0.5<0.1){
-    #   # returned defauled coordinates
-    #   shinyalert("Oops!", "City not found. Please check spelling and use state abbreviations.", type = "error")
-    # }
-    # 
-    # 
-    # else{
-    #   #print("Getting tick data for user")
-    #   # userid <- 200220441
+    # Error: Case 1
+    if(((as.numeric(long_lat[1])-39.7837304)^2+(as.numeric(long_lat[2])+100.4458825)^2)^0.5<0.1){
+      # returned defauled coordinates
+      shinyalert("Oops!", "City not found. Please check spelling and use state abbreviations.", type = "error")
+    }
+    
+
+    else{
+      #print("Getting tick data for user")
+      # userid <- 200220441
       ticks <- TICK$find(paste0('{"user":','"', userid, '"}'))
       
       # Run SVD on power users (users with over 100 routes)
@@ -402,7 +395,7 @@ server <- function(input, output) {
         
         #data$dataframe <- dataframe
       }
-    # }
+    }
   })
 
 
@@ -535,6 +528,11 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+
+
+
+
 
 
 
