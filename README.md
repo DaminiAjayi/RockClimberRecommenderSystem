@@ -1,4 +1,4 @@
-# RC Recommender
+# Rock Climbing Route Recommender
 - R Shiny Application: https://bencroft.shinyapps.io/RockClimbingRecommender/
   - Authors of this week: **Oluwadamini Ajayi, Benjamin Croft, Joshua Demeo, Jeff Sayre, Jiandao Zhu**
     - All are students in Georgia Tech's Masters in Analytics program
