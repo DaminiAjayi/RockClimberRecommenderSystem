@@ -2,7 +2,7 @@
 
 ## DESCRIPTION 
 
-Drawing on the Mountain Project web application (located here: https://www.mountainproject.com/), the goal of this project is to build a Recommender System (RS) to help rock climbers find climbing routes that are in their immediate geographical area and at or slightly above their current skill level. This RS will be built by clustering similar users together using several climbing metrics in order to help the user improve their climbing skills. This project will benefit rock climbers of all skill levels by identifying climbing routes that are custom-tailored to their individual interests and skill level. The Mountain Project has a large number of users, a portion of which might be interested in a tool like this. 
+Drawing on the Mountain Project web application (https://www.mountainproject.com/), the goal of this project is to build a Recommender System (RS) to help rock climbers find climbing routes that are in their immediate geographical area and at or slightly above their current skill level. This RS will be built by clustering similar users together using several climbing metrics in order to help the user improve their climbing skills. This project will benefit rock climbers of all skill levels by identifying climbing routes that are custom-tailored to their individual interests and skill level. The Mountain Project has a large number of users, a portion of which might be interested in a tool like this. 
 
 This repository contains datasets and R code necessary to run the Rock Climbing Recommender System locally. A live version of the web application can be viewed at: https://rockclimbingrecommender.shinyapps.io/RockClimbingRecommender/ 
 
