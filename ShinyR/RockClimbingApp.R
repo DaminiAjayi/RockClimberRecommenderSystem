@@ -224,9 +224,7 @@ ui <- navbarPage("Rock Climbing Recommender",
                                           # Minimum rating (stars)
                                           sliderInput("rating", "Minimum Stars", min = 0, max = 5, value = 0,step=0.5),
                                           # Selector for type of climb
-                                          pickerInput("type", "Type of Climb", choices = c("Aid","Alpine", "Boulder","Ice","Mixed", "Rock","Snow" , "Sport","TR","Trad"),
-                                                          selected = "Rock", options = list(`actions-box` = TRUE, size = 10, `selected-text-format` = "count > 3"),
-                                                      multiple = TRUE),
+                                          radioButtons("type", "Type of Climb", choices = c("All","Aid","Alpine", "Boulder","Ice","Mixed", "Rock","Snow" , "Sport","TR","Trad"), selected = "All"),
                                           sliderInput("pitches", "No. of Pitches", min = 0, max = 10, value = 0,step=1),
                                           # # Slider for V-level (whatever that is)
                                           # sliderInput("vlevel", "V Level", min = 0, max = 14, value = c(3, 5)),
@@ -247,14 +245,13 @@ ui <- navbarPage("Rock Climbing Recommender",
                                           # Number of pitches
                                           sliderInput("explorer_pitches", "Number of Pitches", min = 0, max = 10, value = c(3, 5)),
                                           # Selector for type of climb
-                                          radioButtons("explorer_type", "Type of Climb", choices = c("Aid", "Alpine", "Boulder", "Ice", "Mixed", "Rock", "Sport", "TR", "Trad"), 
-                                                         selected = "Trad"),
+                                          radioButtons("explorer_type", "Type of Climb", choices = c("All","Aid", "Alpine", "Boulder", "Ice", "Mixed", "Rock", "Sport", "Trad"), 
+                                                       selected = "All"),
                               
                                           # Star votes
                                           sliderInput("explorer_stars", "Select star votes", min = 0, max = 1606, value = c(500, 700)),
                                           # Star rating
-                                          sliderInput("explorer_star_rating", "Select star rating", min = 0, max = 5, value = c(3.5, 4.5)),
-                                          actionButton("exp_search", "Search")
+                                          sliderInput("explorer_star_rating", "Select star rating", min = 0, max = 5, value = c(3.5, 4.5))
                                         ))),
                  tabPanel("References",
                           fluidRow(
@@ -300,10 +297,6 @@ ui <- navbarPage("Rock Climbing Recommender",
 
 
 
-
-
-
-
 ####################### APP SERVER ###############################
 
 
@@ -314,7 +307,7 @@ server <- function(input, output) {
   
   output$mymap <- renderLeaflet({
     leaflet() %>%
-      setView(lng = -115.900650, lat = 33.881866, zoom = 7) %>%
+      setView(lng = -98, lat = 39, zoom = 4) %>%
       addProviderTiles(providers$Esri.WorldTopoMap, 
                        options = providerTileOptions(noWrap = TRUE)) %>%
       addMiniMap() 
@@ -325,6 +318,7 @@ server <- function(input, output) {
   observeEvent(input$search, {
     cityname <- isolate(input$cityname)
     userid <- isolate(input$userid)
+    userid=str_replace_all(userid, fixed(" "), "")
     searchradius <- isolate(input$searchradius)
     numofrecom <- isolate(input$numofrecom)
     
@@ -332,9 +326,8 @@ server <- function(input, output) {
     #print(paste0("Latitude is: ", long_lat[2][1]))
     
     # Error: Case 1
-    if(((as.numeric(long_lat[1])-39.7837304)^2+(as.numeric(long_lat[2])+100.4458825)^2)^0.5<0.1){
-      # returned defauled coordinates
-      shinyalert("Oops!", "City not found. Please check spelling and use state abbreviations.", type = "error")
+    if(long_lat[1]=="NULL" | long_lat[2]=="NULL"){
+      shinyalert("Oops!", "City not found. Please check spelling.", type = "error")
     }
     
 
@@ -347,6 +340,7 @@ server <- function(input, output) {
       if(length(ticks$ticks[[1]]$routeId) >= 100){
         print("Running SVD code")
         # svd_setup()
+
         routeid <- getroutesid(userid, long_lat[[1]], long_lat[[2]], searchradius, numofrecom)
         
       # Run kNN on small users (users with less than 100 routes)
@@ -401,9 +395,8 @@ server <- function(input, output) {
           
           if (pitches ==""){pitches <- 0}
           dataframe=rbind(dataframe,data.frame(content, longitude, latitude, name, state, type, rating, pitches, stars, votes, url))
-          dataframe
         }
-        
+        data$dataframe <- dataframe
         createLink <- function(url){
           sprintf(paste0('<a href="', URLdecode(url),'" target="_blank">','</a>'))
           
@@ -433,48 +426,45 @@ server <- function(input, output) {
   })
 
 
-  
-
-  
   observeEvent(input$filter, {
-
-  # First, check if the recommender has been run
-    if ((input$userid != "") | (input$cityname != "") | (input$searchradius != "") ){
-      
-      # Get the data
-      selectrating <- isolate(input$rating)
-      selectpitches <- isolate(input$pitches)
-      selecttype <- isolate(input$type)
-      #dataframe <- data$dataframe
-      
-      dataframe_filtered <- dataframe %>%
-        filter(stars >= selectrating) %>%
-        filter(pitches >= pitches) %>%
-        filter(type %in% selecttype)
-      
+    if (!is.null(data$dataframe) ){
       output$mymap <- renderLeaflet({
-        leaflet(dataframe) %>%
-          #setView(lng = longitude, lat = latitude, zoom = 7) %>%
+        selectrating <- isolate(input$rating)
+        selectpitches <- isolate(input$pitches)
+        # selectlocation <- isolate(input$location)
+        selecttype <- isolate(input$type)
+        dataframe <- data$dataframe
+        print(dataframe)
+        df_sub <- subset(dataframe,stars>=selectrating)
+        df_sub <- subset(df_sub,pitches>=selectpitches)
+        # if(selectlocation !="" & selectlocation !="All"){
+        #   df_sub <- subset(df,state==selectlocation)
+        # }
+        
+        if(selecttype !="All"){
+          print(selecttype)
+          df_sub <- df_sub %>% filter(str_detect(type, selecttype))
+        }     
+        data$df_sub <- df_sub
+        leaflet(data = df_sub) %>%
+          #setView(lng = -98, lat = 39, zoom =4) %>%
+          
           addProviderTiles(providers$Esri.WorldTopoMap, 
-                           options = providerTileOptions(noWrap = TRUE)) %>%
-          addPopups(lng = dataframe$longitude, lat = dataframe$latitude, dataframe$content) %>%
-          addMarkers(lng = dataframe$longitude, lat = dataframe$latitude, popup = dataframe$content) %>%
-          addMiniMap() 
+                           options = providerTileOptions(noWrap = TRUE)) %>%  
+          
+          addMarkers(lng = 	df_sub$longitude, lat = df_sub$latitude, popup = df_sub$content) %>%
+          addMiniMap()  
+        
       })
-      
       output$table <- DT::renderDataTable({
-        DT::datatable(dataframe[,c("name","state","type","pitches","stars","votes")])
+        DT::datatable(data$df_sub[,c("name","state","type","pitches","stars","votes")])
       })
-      
-      
-      
-    } else{
+    }
+    else{
       shinyalert("Oops!", "Please run recommendation before filter.", type = "error")
     }
     
-  
   })
-
   
   
   
@@ -501,7 +491,6 @@ server <- function(input, output) {
              pitches <= pitches_max
       )
     
-    # Filter the type of climb
     if (type == "Trad"){
       d <- d %>% filter(Trad == 1)
     } else if (type == "Sport"){
@@ -516,13 +505,11 @@ server <- function(input, output) {
       d <- d %>% filter(Mixed == 1)
     } else if (type == "Snow"){
       d <- d %>% filter(Snow == 1)
+    } else if (type == "All"){
+      d <- d
     } else {
       d <- d %>% filter(Aid == 1)
     }
-    
-    # Return data
-    d
-
   })
   
   
