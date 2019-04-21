@@ -13,3 +13,11 @@ To install and load the recommender algorithm, download the folder to your local
 ## EXECUTION 
 
 As an R Shiny application, R Studio provides functionality to easily run the app locally by pressing the button “Run” button. The app will draw on the getgeo.R file as well as the Recommenders.r file for functions held within those scripts, and will present the app in a default browser.
+
+## PROJECT CONTRIBUTORS
+Oluwadamini Ajayi
+Benjamin Croft
+Joshua Demeo
+Jeff Sayre
+Jiandao Zhu
+
