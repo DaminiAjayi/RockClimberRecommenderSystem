@@ -152,14 +152,24 @@ ui <- navbarPage("Rock Climbing Recommender",
                                           text1, text2, br(), br(),
                                           text3, br(), br(),
                                           h2("How it works"), 
-                                          text4, br(), br(),
-                                          h3("Collaborative Filtering"),
-                                          text4, br(), br(),
-                                          h3("Singular Value Decomposition"), 
-                                          text4, br(), br()
-                                        ),
+                                          p("Using the user tick data, we created a user-route matrix.  This constituted a sparse matrix where each element in the matrix represents a user’s rating of a route they have done."),
+                                          img(src = "sparse_matrix.png"),
+                                          br(),
+                                          p("Most of the elements have no ratings because of the nature of the data. After preprocessing to remove any duplicate information inherent to the data and removal of ratings of -1 (Mountain Project placeholder for no rating), the final matrix was formed. This was used as the input for SVD to construct the latent factor matrices. SVD is a matrix factorization technique by which a larger matrix can be represented by two smaller matrices. The implementation of SVD used for our final models is that of Koren et al. (2009) where a prediction is given by the equation:"), 
+                                          img(src = "equation1.png"),
+                                          br(),
+                                          p("A prediction for the rating a user gives to a route is given by (rui) which is the summation of the mean rating of all the ratings (), the bias of the user (bu), the bias for the particular route (bi), and the dot product of the latent route matrix (qiT) and latent user matrix (pu). The SVD algorithm goes through a specified number of iterations of stochastic gradient descent to minimize a regularized squared error between the known user-matrix ratings and those predicted for those ratings, which is given by the equation:"),
+                                          img(src = "equation2.png"),
+                                          p("From these latent factor matrices, a reconstruction of the user-route matrix can be made, which contains predictions of ratings for the routes not attempted by each user. Highly rated routes not attempted by a particular user can then be used as a recommendation for that particular user and it can be further filtered down to only include those routes that are within a certain distance of a location."),
+                                          p("In order to ensure an optimal recommendation system, we pursued both a KNN as well as SVD solution. To build the KNN model, we start by cleaning the data and providing a numerical floating point value for the standard rock climbing scale (ie: 5.6+, 5.10a, etc…). This helps with numerically defining a user’s average difficulty and hardest difficulty completed for routes they have done. The number of counts for each type of route completed are determined. These features help to define our users and represent inputs to our model. We then normalize all the data to values between 0 and 1 to allow comparison between dissimilar features. Finally, given a particular user, we calculate distances between their values (primary user) and everyone else’s (comparative user) for 12 attributes (i.e: average difficulty, hardest difficulty, route count, etc…). This is done with the distance function:"),
+                                          img(src = "equation3.png"),
+                                          p("By using this distance function, the algorithm effectively prioritizes similarity, by making the penalty for dissimilarity quadratic. In practice, this has allowed us to select extremely similar users for our KNN recommender system. After calculating and summing the attributes’ similarity scores, we sort the output and get routes from the most similar users. We then calculate a final score by multiplying the average rating for a route, by the users similarity score, to find the routes that similar users found very enjoyable. These selected routes are then filtered by location and type of climb, based on user input in order to come up with final recommendations."),
+                                          br()
+                                          
+                                          
+                                          ),
                                         
-                                        sidebarPanel(width = 2, 
+                                          sidebarPanel(width = 2, 
                                           img(src ="gt_logo.svg", height = 150, width = 150),
                                           h3("CSE 6242 Team #137"),
                                           h4(em(("Spring 2019"))),
@@ -191,7 +201,8 @@ ui <- navbarPage("Rock Climbing Recommender",
                                           p(),
                                           leafletOutput("mymap", height = 600),
                                           br(),
-                                          br(),
+                                          em("All latitude and longitude coordinates for routes were directly obtained from the Mountain Project and were not verified for location accuracy."),
+                                          br(), br(), 
                                           DT::dataTableOutput("table")
                                         ),
                                         sidebarPanel(width = 3,
@@ -226,16 +237,13 @@ ui <- navbarPage("Rock Climbing Recommender",
                                         mainPanel(
                                           h2("Route Explorer"),
                                           br(),
-                                          p("Use the route explorer as an alternative to the recommender system. You can view all routes within a distance of a location that you specify. You can further refine these routes by type, number of pitches, rating, and votes. Once the filters you choose are applied, you can visually see all of the routes that match your choices. The bottom left corner being poorly rated, with less votes, and the top right corner being highly rated with more votes. You can also see the number of pitches represented by color. Just hover any route that interests you for more details."),
+                                          p("Use the route explorer as an alternative to the recommender system. You can refine these routes by type, number of pitches, rating, and votes. Once the filters you choose are applied, you can visually see all of the routes that match your choices. The bottom left corner being poorly rated, with less votes, and the top right corner being highly rated with more votes. You can also see the number of pitches represented by color. Just hover any route that interests you for more details."),
                                           br(),
                                           ggvisOutput("explorer_plot")
                                           ),
                                         sidebarPanel(
                                           # Sidebar heading
                                           h2("Controls"),
-                                          #textInput("explorer_cityname", "City, State:", placeholder = 'Seattle, WA'),
-                                          #sliderInput("explorer_searchradius", "Routes search radius (mi)", min = 0, max = 1000, value = 100),
-                                          
                                           # Number of pitches
                                           sliderInput("explorer_pitches", "Number of Pitches", min = 0, max = 10, value = c(3, 5)),
                                           # Selector for type of climb
@@ -556,3 +564,11 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+
+
+
+
+
+
+
