@@ -16,8 +16,12 @@ As an R Shiny application, R Studio provides functionality to easily run the app
 
 ## PROJECT CONTRIBUTORS
 Oluwadamini Ajayi
+
 Benjamin Croft
+
 Joshua Demeo
+
 Jeff Sayre
+
 Jiandao Zhu
 
