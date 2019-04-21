@@ -5,3 +5,4 @@
 - Implementation of a recommender system for rock climbers who participate on https://www.mountainproject.com/
 - Input of a users ID number and climbing city provides custom recommendations for routes we think you'd enjoy
 - The recommendation system was developed as a final project for course CSE 6242 - Data and Visual Analytics
+![Recommender Map](https://github.gatech.edu/jdemeo3/Rock_Climbing_Recommendation_System/blob/master/App%20Images/RecommenderMap.png)
